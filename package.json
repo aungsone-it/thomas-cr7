@@ -1,0 +1,33 @@
+{
+  "name": "mm-2d3d-lottery",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "npm run dev --prefix server",
+    "dev:all": "concurrently -n web,api -c cyan,yellow \"npm run dev\" \"npm run dev:server\"",
+    "build": "tsc -b && vite build",
+    "build:server": "npm run build --prefix server",
+    "build:prod": "bash scripts/build-production.sh",
+    "start:prod": "NODE_ENV=production SERVE_STATIC=true STATIC_DIR=./dist DB_PATH=./server/data/lottery.db node server/dist/index.js",
+    "preview": "vite preview",
+    "docker:up": "docker compose up -d --build",
+    "docker:logs": "docker compose logs -f app"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.2",
+    "concurrently": "^9.1.2",
+    "tailwindcss": "^4.1.8",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5"
+  }
+}

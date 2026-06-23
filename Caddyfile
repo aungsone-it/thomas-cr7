@@ -1,0 +1,5 @@
+# Replace with your domain, e.g. mm2d3d.yourdomain.com
+{$DOMAIN:localhost} {
+	encode gzip
+	reverse_proxy app:3001
+}
