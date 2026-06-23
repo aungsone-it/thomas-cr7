@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 server/data/
+server/data/uploads/
 .env
 .env.production
 server/.env

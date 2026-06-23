@@ -1,12 +1,14 @@
 import 'dotenv/config'
-import express from 'express'
+import express, { type Request, type Response, type NextFunction } from 'express'
 import cors from 'cors'
+import multer from 'multer'
 import { initDb } from './db.js'
 import { publicRouter } from './routes/public.js'
 import { adminRouter } from './routes/admin.js'
 import { startPoller, stopPoller } from './poller.js'
 import { buildLivePayload } from './cache.js'
 import { setupStaticFrontend } from './static.js'
+import { setupUploads } from './uploads.js'
 import { rateLimit } from './middleware/rateLimit.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
@@ -30,10 +32,24 @@ app.use((_req, res, next) => {
 app.use(cors({ origin: corsOrigin }))
 app.use(express.json({ limit: '256kb' }))
 app.use('/api', rateLimit(120, 60_000))
+setupUploads(app)
 app.use('/api', publicRouter)
 app.use('/api/admin', adminRouter)
 
 setupStaticFrontend(app)
+
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'File too large (max 5MB)' : err.message
+    res.status(400).json({ error: msg })
+    return
+  }
+  if (err instanceof Error) {
+    res.status(400).json({ error: err.message })
+    return
+  }
+  next(err)
+})
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`[server] http://${HOST}:${PORT}`)

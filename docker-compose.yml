@@ -11,6 +11,7 @@ services:
       SERVE_STATIC: "true"
       STATIC_DIR: /app/public
       DB_PATH: /data/lottery.db
+      UPLOAD_DIR: /data/uploads
     volumes:
       - lottery-data:/data
 

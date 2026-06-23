@@ -41,6 +41,7 @@ Open http://localhost:3001 (or your domain with HTTPS via Caddy).
 | Live 2D/3D results | ✅ SET poller (mock or real API) |
 | SQLite history | ✅ Auto-seeded, persists on VPS |
 | Admin panel `/admin` | ✅ Colors, formula, branding |
+| **Image uploads** | ✅ Logo, loading banner, background |
 | MMT timezone | ✅ Draw times use Asia/Yangon |
 | Docker + Caddy HTTPS | ✅ One-command deploy |
 | PM2 config | ✅ Alternative to Docker |

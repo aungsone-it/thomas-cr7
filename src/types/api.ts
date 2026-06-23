@@ -6,7 +6,13 @@ export interface SiteSettings {
   cardColor: string
   accentColor: string
   announcement: string
+  logoUrl: string
+  loadingBannerUrl: string
+  backgroundImageUrl: string
+  backgroundOverlay: number
 }
+
+export type UploadKind = 'logo' | 'loading' | 'background'
 
 export type Formula2DMethod = 'change_last_two' | 'index_decimal_two' | 'index_whole_last_two'
 export type Formula3DMethod = 'index_three_digits' | 'change_three_digits'

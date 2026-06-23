@@ -14,6 +14,7 @@ module.exports = {
         PORT: 3001,
         HOST: '0.0.0.0',
         DB_PATH: './data/lottery.db',
+        UPLOAD_DIR: './data/uploads',
       },
     },
   ],

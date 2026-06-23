@@ -10,6 +10,8 @@ import {
 } from '../db.js'
 import { buildLivePayload, invalidateCache } from '../cache.js'
 import { pollOnce } from '../poller.js'
+import { handleDeleteUpload, handleUpload, removeOldFiles, uploadMiddleware, getUploadDir } from '../uploads.js'
+import type { UploadKind } from '../uploads.js'
 import type { FormulaConfig, Result2D, Result3D, SiteSettings } from '../types.js'
 
 export const adminRouter = Router()
@@ -26,6 +28,21 @@ adminRouter.put('/settings', (req, res) => {
   buildLivePayload()
   res.json(settings)
 })
+
+adminRouter.post(
+  '/upload/:kind',
+  (req, _res, next) => {
+    const kind = req.params.kind as UploadKind
+    if (['logo', 'loading', 'background'].includes(kind)) {
+      removeOldFiles(getUploadDir(), kind)
+    }
+    next()
+  },
+  uploadMiddleware.single('file'),
+  handleUpload,
+)
+
+adminRouter.delete('/upload/:kind', handleDeleteUpload)
 
 adminRouter.get('/formula', (_req, res) => {
   res.json(getFormula())

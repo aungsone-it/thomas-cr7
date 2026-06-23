@@ -1,13 +1,21 @@
 import type { FormulaConfig, LivePayload, SiteSettings, CalendarStats } from '../types/api'
 import type { Holiday, Result2D, Result3D } from '../types/lottery'
 
+/** Image paths from API (/uploads/...) — same origin in dev (proxy) and prod */
+export function mediaUrl(path: string): string {
+  if (!path) return ''
+  return path
+}
+
 const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-    ...init,
-  })
+  const headers = new Headers(init?.headers)
+  if (init?.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const res = await fetch(`${BASE}${path}`, { ...init, headers })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error ?? `API error ${res.status}`)
@@ -79,4 +87,21 @@ export function adminPollNow(token: string): Promise<LivePayload> {
 
 export function adminHealth(token: string): Promise<{ ok: boolean }> {
   return adminRequest('/health', token)
+}
+
+export function adminUploadImage(
+  token: string,
+  kind: import('../types/api').UploadKind,
+  file: File,
+): Promise<{ url: string; settings: SiteSettings }> {
+  const form = new FormData()
+  form.append('file', file)
+  return adminRequest(`/upload/${kind}`, token, { method: 'POST', body: form })
+}
+
+export function adminDeleteImage(
+  token: string,
+  kind: import('../types/api').UploadKind,
+): Promise<{ settings: SiteSettings }> {
+  return adminRequest(`/upload/${kind}`, token, { method: 'DELETE' })
 }

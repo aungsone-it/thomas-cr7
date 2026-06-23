@@ -25,6 +25,7 @@ ENV NODE_ENV=production
 ENV SERVE_STATIC=true
 ENV STATIC_DIR=/app/public
 ENV DB_PATH=/data/lottery.db
+ENV UPLOAD_DIR=/data/uploads
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
@@ -41,6 +42,6 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-RUN mkdir -p /data && chown -R node:node /app /data
+RUN mkdir -p /data/uploads && chown -R node:node /app /data
 USER node
 CMD ["node", "dist/index.js"]

@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { mediaUrl } from '../api/client'
 import { useLiveClock } from '../hooks/useLiveClock'
 import { useSettings } from '../context/SettingsContext'
 
@@ -11,15 +12,39 @@ const navItems = [
 
 export default function Layout() {
   const settings = useSettings()
+  const bg = mediaUrl(settings.backgroundImageUrl)
+  const logo = mediaUrl(settings.logoUrl)
+  const overlay = Math.min(90, Math.max(0, settings.backgroundOverlay ?? 65))
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="relative flex min-h-dvh flex-col bg-surface">
+      {bg && (
+        <>
+          <div
+            className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${bg})` }}
+          />
+          <div
+            className="pointer-events-none fixed inset-0 z-0"
+            style={{ backgroundColor: settings.backgroundColor, opacity: overlay / 100 }}
+          />
+        </>
+      )}
+
       <header className="sticky top-0 z-50 border-b border-slate-700/50 bg-surface/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-gold/20 ring-1 ring-brand-gold/40">
-              <span className="text-sm font-bold text-brand-gold">2D</span>
-            </div>
+            {logo ? (
+              <img
+                src={logo}
+                alt={settings.appName}
+                className="h-9 w-9 rounded-lg object-cover ring-1 ring-brand-gold/40"
+              />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-gold/20 ring-1 ring-brand-gold/40">
+                <span className="text-sm font-bold text-brand-gold">2D</span>
+              </div>
+            )}
             <div>
               <h1 className="text-base font-bold leading-tight text-white">{settings.appName}</h1>
               <p className="text-[11px] text-slate-400">{settings.appSubtitle}</p>
@@ -29,7 +54,7 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-24">
+      <main className="relative z-10 mx-auto w-full max-w-lg flex-1 px-4 py-4 pb-24">
         <Outlet />
       </main>
 
@@ -42,9 +67,7 @@ export default function Layout() {
               end={to === '/'}
               className={({ isActive }) =>
                 `flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${
-                  isActive
-                    ? 'text-brand-gold'
-                    : 'text-slate-400 hover:text-slate-200'
+                  isActive ? 'text-brand-gold' : 'text-slate-400 hover:text-slate-200'
                 }`
               }
             >

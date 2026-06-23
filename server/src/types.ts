@@ -49,6 +49,10 @@ export interface SiteSettings {
   cardColor: string
   accentColor: string
   announcement: string
+  logoUrl: string
+  loadingBannerUrl: string
+  backgroundImageUrl: string
+  backgroundOverlay: number
 }
 
 export type Formula2DMethod = 'change_last_two' | 'index_decimal_two' | 'index_whole_last_two'
@@ -77,6 +81,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   cardColor: '#1e293b',
   accentColor: '#fbbf24',
   announcement: '',
+  logoUrl: '',
+  loadingBannerUrl: '',
+  backgroundImageUrl: '',
+  backgroundOverlay: 65,
 }
 
 export const DEFAULT_FORMULA: FormulaConfig = {
