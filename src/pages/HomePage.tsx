@@ -1,12 +1,22 @@
+import { useEffect, useState } from 'react'
+import { fetch2DResults, fetch3DResults } from '../api/client'
 import { useLiveData } from '../hooks/useLiveData'
 import LiveBadge from '../components/LiveBadge'
 import { NumberDisplay, Result2DCard, Result3DCard, SetIndexBar } from '../components/NumberDisplay'
 import { formatDate, slotLabel } from '../utils/format'
 import { useSettings } from '../context/SettingsContext'
+import type { Result2D, Result3D } from '../types/lottery'
 
 export default function HomePage() {
   const { data, loading, error } = useLiveData()
   const settings = useSettings()
+  const [history2D, setHistory2D] = useState<Result2D[]>([])
+  const [history3D, setHistory3D] = useState<Result3D[]>([])
+
+  useEffect(() => {
+    fetch2DResults(8).then(setHistory2D).catch(() => {})
+    fetch3DResults(5).then(setHistory3D).catch(() => {})
+  }, [])
 
   if (loading && !data) {
     return <LoadingState />
@@ -17,7 +27,17 @@ export default function HomePage() {
   }
 
   if (!data?.latest2D) {
-    return <ErrorState message="No results yet. Start the backend server." />
+    return (
+      <div className="space-y-4 animate-slide-up">
+        <SetIndexBar
+          value={data?.setIndex?.value ?? 0}
+          change={data?.setIndex?.change ?? 0}
+          changePercent={data?.setIndex?.changePercent ?? 0}
+        />
+        <ErrorState message="Waiting for next draw. Live 2D updates during morning (9:30–12:01) and evening (2:00–4:30) MMT on weekdays." />
+        <PreviousWinningNumbers history2D={history2D} history3D={history3D} />
+      </div>
+    )
   }
 
   const { setIndex, latest2D, previous2D, latest3D, liveStatus } = data
@@ -82,8 +102,48 @@ export default function HomePage() {
         </section>
       )}
 
+      <PreviousWinningNumbers history2D={history2D} history3D={history3D} />
+
       <DrawSchedule />
     </div>
+  )
+}
+
+function PreviousWinningNumbers({
+  history2D,
+  history3D,
+}: {
+  history2D: Result2D[]
+  history3D: Result3D[]
+}) {
+  return (
+    <section className="rounded-xl bg-surface-card/40 p-4 ring-1 ring-slate-700/30">
+      <SectionHeader title="Previous Winning Numbers" subtitle="ယခင်အနိုင်ဂဏန်းများ" />
+      {history2D.length === 0 && history3D.length === 0 ? (
+        <p className="text-xs text-slate-400">No previous results yet. Results will appear after the first locked draw.</p>
+      ) : (
+        <div className="space-y-2">
+          {history2D.slice(0, 6).map((r) => (
+            <div key={`2d-${r.id}`} className="flex items-center justify-between rounded-lg bg-surface-elevated/40 px-3 py-2">
+              <div>
+                <p className="text-xs text-slate-400">2D · {formatDate(r.date, 'mm')} · {slotLabel(r.slot)}</p>
+                <p className="text-lg font-bold text-brand-gold">{r.number}</p>
+              </div>
+              <p className="text-xs text-slate-500">SET {r.set} · {r.value}</p>
+            </div>
+          ))}
+          {history3D.slice(0, 3).map((r) => (
+            <div key={`3d-${r.id}`} className="flex items-center justify-between rounded-lg bg-surface-elevated/40 px-3 py-2">
+              <div>
+                <p className="text-xs text-slate-400">3D · {formatDate(r.date, 'mm')}</p>
+                <p className="text-lg font-bold text-brand-gold">{r.number}</p>
+              </div>
+              <p className="text-xs text-slate-500">Draw day {r.drawDay}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

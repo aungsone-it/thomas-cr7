@@ -27,6 +27,7 @@ const FORMULA_3D_OPTIONS = [
 export default function AdminPage() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? '')
   const [loggedIn, setLoggedIn] = useState(false)
+  const [checkingSavedToken, setCheckingSavedToken] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)?.trim()))
   const [settings, setSettings] = useState<SiteSettings | null>(null)
   const [formula, setFormula] = useState<FormulaConfig | null>(null)
   const [message, setMessage] = useState('')
@@ -34,11 +35,12 @@ export default function AdminPage() {
   const [uploading, setUploading] = useState<UploadKind | null>(null)
   const [showToken, setShowToken] = useState(false)
 
-  async function login() {
-    setError('')
-    const trimmed = token.trim()
+  async function loginWithToken(rawToken: string, silent = false) {
+    if (!silent) setError('')
+    const trimmed = rawToken.trim()
     if (!trimmed) {
-      setError('Enter your admin token')
+      if (!silent) setError('Enter your admin token')
+      setCheckingSavedToken(false)
       return
     }
 
@@ -50,18 +52,22 @@ export default function AdminPage() {
       })
 
       if (healthRes.status === 401) {
-        setError('Wrong token — must match ADMIN_TOKEN in server/.env exactly')
+        localStorage.removeItem(TOKEN_KEY)
+        if (!silent) setError('Wrong token — must match ADMIN_TOKEN in server/.env exactly')
         setLoggedIn(false)
+        setCheckingSavedToken(false)
         return
       }
       if (healthRes.status === 503) {
-        setError('Set ADMIN_TOKEN in server/.env, then restart the server')
+        if (!silent) setError('Set ADMIN_TOKEN in server/.env, then restart the server')
         setLoggedIn(false)
+        setCheckingSavedToken(false)
         return
       }
       if (!healthRes.ok) {
-        setError(`Backend error (${healthRes.status}). Run: npm run dev:all`)
+        if (!silent) setError(`Backend error (${healthRes.status}). Run: npm run dev:all`)
         setLoggedIn(false)
+        setCheckingSavedToken(false)
         return
       }
 
@@ -74,11 +80,17 @@ export default function AdminPage() {
       setSettings(s)
       setFormula(f)
       setLoggedIn(true)
-      setMessage('Connected to admin API')
+      if (!silent) setMessage('Connected to admin API')
     } catch {
-      setError('Backend not running — open terminal and run: npm run dev:all')
+      if (!silent) setError('Backend not running — open terminal and run: npm run dev:all')
       setLoggedIn(false)
+    } finally {
+      setCheckingSavedToken(false)
     }
+  }
+
+  async function login() {
+    await loginWithToken(token, false)
   }
 
   async function saveSettings() {
@@ -145,12 +157,37 @@ export default function AdminPage() {
     }
   }
 
+  function logout() {
+    localStorage.removeItem(TOKEN_KEY)
+    setLoggedIn(false)
+    setToken('')
+    setSettings(null)
+    setFormula(null)
+    setMessage('')
+    setError('')
+    setShowToken(false)
+    setCheckingSavedToken(false)
+  }
+
   useEffect(() => {
     const saved = localStorage.getItem(TOKEN_KEY)?.trim()
-    if (saved) setToken(saved)
+    if (!saved) {
+      setCheckingSavedToken(false)
+      return
+    }
+    setToken(saved)
+    void loginWithToken(saved, true)
   }, [])
 
   if (!loggedIn) {
+    if (checkingSavedToken) {
+      return (
+        <div className="mx-auto max-w-md space-y-4 py-8">
+          <h1 className="text-xl font-bold text-white">Admin Login</h1>
+          <p className="text-sm text-slate-400">Restoring your saved session...</p>
+        </div>
+      )
+    }
     return (
       <div className="mx-auto max-w-md space-y-4 py-8">
         <h1 className="text-xl font-bold text-white">Admin Login</h1>
@@ -192,13 +229,22 @@ export default function AdminPage() {
     <div className="mx-auto max-w-lg space-y-6 pb-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-        <button
-          type="button"
-          onClick={triggerPoll}
-          className="rounded-lg bg-surface-elevated px-3 py-1.5 text-xs text-slate-300 ring-1 ring-slate-600"
-        >
-          Poll SET now
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={triggerPoll}
+            className="rounded-lg bg-surface-elevated px-3 py-1.5 text-xs text-slate-300 ring-1 ring-slate-600"
+          >
+            Poll SET now
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="rounded-lg bg-surface-elevated px-3 py-1.5 text-xs text-slate-300 ring-1 ring-slate-600"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {message && <p className="rounded-lg bg-brand-green/10 px-3 py-2 text-sm text-brand-green">{message}</p>}

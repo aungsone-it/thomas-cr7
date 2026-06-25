@@ -2,18 +2,10 @@ import {
   getFormula,
   upsert2DResult,
   upsert3DResult,
-} from './db.js'
+} from './db/index.js'
 import { apply2DFormula, apply3DFormula, getDrawDay, is3DDrawDay } from './formula.js'
-import {
-  buildLivePayload,
-  setCachedSetIndex,
-} from './cache.js'
-import {
-  fetchSetIndex,
-  fmtDate,
-  getCurrentSlot,
-  isDrawWindow,
-} from './setClient.js'
+import { buildLivePayload, setCachedSetIndex } from './cache.js'
+import { fetchSetIndex, fmtDate, getCurrentSlot, isDrawWindow } from './setClient.js'
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let lastLockedSlot: string | null = null
@@ -28,10 +20,10 @@ export async function pollOnce(): Promise<void> {
     const slotKey = slotInfo ? `${fmtDate(now)}-${slotInfo.slot}` : null
 
     if (slotInfo && slotKey !== lastLockedSlot && isDrawWindow(now)) {
-      const formula = getFormula()
+      const formula = await getFormula()
       const derived = apply2DFormula(setIndex, formula)
 
-      upsert2DResult({
+      await upsert2DResult({
         date: fmtDate(now),
         session: slotInfo.session,
         slot: slotInfo.slot,
@@ -46,7 +38,7 @@ export async function pollOnce(): Promise<void> {
 
       if (is3DDrawDay(now) && (slotInfo.slot === '12:01' || slotInfo.slot === '16:30')) {
         const number3d = apply3DFormula(setIndex, formula)
-        upsert3DResult({
+        await upsert3DResult({
           date: fmtDate(now),
           number: number3d,
           drawDay: getDrawDay(now),
@@ -55,9 +47,15 @@ export async function pollOnce(): Promise<void> {
       }
     }
 
-    buildLivePayload()
+    await buildLivePayload()
   } catch (err) {
     console.error('[poller] Error:', err)
+    // Keep API payload fresh even if SET endpoint is temporarily unreachable.
+    try {
+      await buildLivePayload()
+    } catch (cacheErr) {
+      console.error('[poller] Cache refresh failed:', cacheErr)
+    }
   }
 }
 

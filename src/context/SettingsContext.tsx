@@ -55,6 +55,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     root.style.setProperty('--color-primary', settings.primaryColor)
   }, [settings])
 
+  useEffect(() => {
+    // Keep browser tab title aligned with admin-configured app name.
+    document.title = settings.appName || 'MM 2D3D Live'
+  }, [settings.appName])
+
   return (
     <SettingsContext.Provider value={{ settings, ready, refreshSettings }}>
       {children}

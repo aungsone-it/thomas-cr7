@@ -15,7 +15,9 @@ npm run dev:all
 
 ## Production deploy
 
-**Full step-by-step guide:** [DEPLOY.md](./DEPLOY.md)
+**Free (no VPS):** [DEPLOY-SUPABASE.md](./DEPLOY-SUPABASE.md) — Supabase + Render + Vercel ($0/mo)
+
+**VPS ($5/mo):** [DEPLOY.md](./DEPLOY.md) — Docker on Hetzner/DigitalOcean
 
 ```bash
 # Build

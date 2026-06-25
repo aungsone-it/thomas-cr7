@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: mm2d3d-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm install --prefix server && npm run build:prod
+    startCommand: NODE_ENV=production SERVE_STATIC=false node server/dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVE_STATIC
+        value: false
+      - key: SET_MODE
+        value: public
+      - key: SEED_DATA
+        value: none
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: assets
+      - key: CORS_ORIGIN
+        sync: false

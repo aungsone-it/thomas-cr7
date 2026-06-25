@@ -88,6 +88,6 @@ export const DEFAULT_SETTINGS: SiteSettings = {
 }
 
 export const DEFAULT_FORMULA: FormulaConfig = {
-  twoD: { method: 'change_last_two' },
+  twoD: { method: 'index_decimal_two' },
   threeD: { method: 'index_three_digits' },
 }

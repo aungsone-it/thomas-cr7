@@ -6,45 +6,76 @@ import {
   getHolidays,
   getStats,
   getUniqueDates,
-} from '../db.js'
-import { getCachedLive } from '../cache.js'
+} from '../db/index.js'
+import { buildLivePayload, getCachedLive } from '../cache.js'
 
 export const publicRouter = Router()
 
-publicRouter.get('/live', (_req, res) => {
-  res.json(getCachedLive())
-})
-
-publicRouter.get('/2d', (req, res) => {
-  const date = req.query.date as string | undefined
-  const limit = Number(req.query.limit ?? 50)
-
-  if (date) {
-    res.json(get2DByDate(date))
-  } else {
-    res.json(get2DHistory(limit))
+publicRouter.get('/live', async (_req, res) => {
+  try {
+    res.json(getCachedLive())
+  } catch {
+    try {
+      res.json(await buildLivePayload())
+    } catch (e) {
+      res.status(503).json({ error: e instanceof Error ? e.message : 'Live data not ready yet' })
+    }
   }
 })
 
-publicRouter.get('/3d', (req, res) => {
+publicRouter.get('/2d', async (req, res) => {
+  const date = req.query.date as string | undefined
   const limit = Number(req.query.limit ?? 50)
-  res.json(get3DHistory(limit))
+  try {
+    res.json(date ? await get2DByDate(date) : await get2DHistory(limit))
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error' })
+  }
 })
 
-publicRouter.get('/calendar/dates', (_req, res) => {
-  res.json(getUniqueDates())
+publicRouter.get('/3d', async (req, res) => {
+  const limit = Number(req.query.limit ?? 50)
+  try {
+    res.json(await get3DHistory(limit))
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error' })
+  }
 })
 
-publicRouter.get('/calendar/stats', (_req, res) => {
-  res.json(getStats())
+publicRouter.get('/calendar/dates', async (_req, res) => {
+  try {
+    res.json(await getUniqueDates())
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error' })
+  }
 })
 
-publicRouter.get('/settings', (_req, res) => {
-  res.json(getCachedLive().settings)
+publicRouter.get('/calendar/stats', async (_req, res) => {
+  try {
+    res.json(await getStats())
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error' })
+  }
 })
 
-publicRouter.get('/holidays', (_req, res) => {
-  res.json(getHolidays())
+publicRouter.get('/settings', async (_req, res) => {
+  try {
+    res.json(getCachedLive().settings)
+  } catch {
+    try {
+      res.json((await buildLivePayload()).settings)
+    } catch {
+      res.status(503).json({ error: 'Settings not ready yet' })
+    }
+  }
+})
+
+publicRouter.get('/holidays', async (_req, res) => {
+  try {
+    res.json(await getHolidays())
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error' })
+  }
 })
 
 publicRouter.get('/health', (_req, res) => {

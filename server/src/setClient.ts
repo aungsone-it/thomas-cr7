@@ -5,18 +5,51 @@ import {
   isWeekdayMMT,
   minutesSinceMidnightMMT,
 } from './time.js'
+import { fetchSetIndexPublic } from './setPublic.js'
 
 const SET_REALTIME_URL = 'https://marketplace.set.or.th/api/public/realtime-data/index'
 const SET_DELAY_URL = 'https://marketplace.set.or.th/api/public/delay-data/index'
 
+let lastGoodSetIndex: SetIndexData | null = null
+
+export function getSetMode(): string {
+  return process.env.SET_MODE ?? 'public'
+}
+
+function shouldFallbackToMockOnError(): boolean {
+  const raw = (process.env.SET_FALLBACK_ON_ERROR ?? 'true').toLowerCase()
+  return raw !== 'false' && raw !== '0' && raw !== 'no'
+}
+
+async function withSetCache(fetcher: () => Promise<SetIndexData>): Promise<SetIndexData> {
+  try {
+    const data = await fetcher()
+    lastGoodSetIndex = data
+    return data
+  } catch (err) {
+    if (lastGoodSetIndex) {
+      console.warn('[SET] Fetch failed, using last good value:', err instanceof Error ? err.message : err)
+      return lastGoodSetIndex
+    }
+    if (shouldFallbackToMockOnError()) {
+      console.warn('[SET] Fetch failed, using mock fallback for now')
+      const mock = mockSetIndex()
+      lastGoodSetIndex = mock
+      return mock
+    }
+    throw err
+  }
+}
+
 export async function fetchSetIndex(): Promise<SetIndexData> {
-  const mode = process.env.SET_MODE ?? 'mock'
+  const mode = getSetMode()
   if (mode === 'mock') return mockSetIndex()
+  if (mode === 'public') return withSetCache(fetchSetIndexPublic)
 
   const apiKey = process.env.SET_API_KEY
   if (!apiKey) {
-    console.warn('[SET] No SET_API_KEY — falling back to mock data')
-    return mockSetIndex()
+    console.warn('[SET] No SET_API_KEY — using free public SET feed')
+    return withSetCache(fetchSetIndexPublic)
   }
 
   const url = mode === 'realtime' ? SET_REALTIME_URL : SET_DELAY_URL
@@ -83,6 +116,22 @@ export function getCurrentSlot(now = new Date()): { session: DrawSession; slot: 
   const { hour, minute } = getMMTParts(now)
   const match = DRAW_SLOTS.find((s) => s.hour === hour && s.minute === minute)
   return match ? { session: match.session, slot: match.slot } : null
+}
+
+/** Active draw slot during a live session (updates in real time until lock). */
+export function getPreviewSlot(now = new Date()): { session: DrawSession; slot: DrawSlot } | null {
+  const minutes = minutesSinceMidnightMMT(now)
+  if (minutes >= 9 * 60 + 30 && minutes <= 12 * 60 + 1) {
+    return minutes <= 9 * 60 + 30
+      ? { session: 'morning', slot: '09:30' }
+      : { session: 'morning', slot: '12:01' }
+  }
+  if (minutes >= 14 * 60 && minutes <= 16 * 60 + 30) {
+    return minutes <= 14 * 60
+      ? { session: 'evening', slot: '14:00' }
+      : { session: 'evening', slot: '16:30' }
+  }
+  return null
 }
 
 export function isDrawWindow(now = new Date()): boolean {

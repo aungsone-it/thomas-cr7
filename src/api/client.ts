@@ -1,9 +1,10 @@
 import type { FormulaConfig, LivePayload, SiteSettings, CalendarStats } from '../types/api'
 import type { Holiday, Result2D, Result3D } from '../types/lottery'
 
-/** Image paths from API (/uploads/...) — same origin in dev (proxy) and prod */
+/** Image paths — local /uploads/... or full Supabase Storage URL */
 export function mediaUrl(path: string): string {
   if (!path) return ''
+  if (path.startsWith('http')) return path
   return path
 }
 
