@@ -1,4 +1,5 @@
 import {
+  get2DHistory,
   getFormula,
   upsert2DResult,
   upsert3DResult,
@@ -6,12 +7,37 @@ import {
 import { apply2DFormula, apply3DFormula, getDrawDay, is3DDrawDay } from './formula.js'
 import { buildLivePayload, setCachedSetIndex } from './cache.js'
 import { fetchSetIndex, fmtDate, getCurrentSlot, isDrawWindow } from './setClient.js'
+import { fetchRecent2DForBootstrap } from './thaiStock2d.js'
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let lastLockedSlot: string | null = null
+let lastBootstrapAttemptAt = 0
+
+async function bootstrapRecentHistoryIfEmpty(): Promise<void> {
+  const existing = await get2DHistory(1)
+  if (existing.length > 0) return
+
+  const now = Date.now()
+  if (now - lastBootstrapAttemptAt < 5 * 60_000) return
+  lastBootstrapAttemptAt = now
+
+  try {
+    const rows = await fetchRecent2DForBootstrap(10)
+    for (const row of rows) {
+      await upsert2DResult(row)
+    }
+    if (rows.length > 0) {
+      console.log(`[poller] Bootstrapped ${rows.length} recent 2D results from ThaiStock2D`)
+    }
+  } catch (err) {
+    console.warn('[poller] Could not bootstrap recent 2D history:', err)
+  }
+}
 
 export async function pollOnce(): Promise<void> {
   try {
+    await bootstrapRecentHistoryIfEmpty()
+
     const setIndex = await fetchSetIndex()
     setCachedSetIndex(setIndex)
 

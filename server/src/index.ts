@@ -15,7 +15,32 @@ import { getSetMode } from './setClient.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
 const HOST = process.env.HOST ?? '0.0.0.0'
-const corsOrigin = process.env.CORS_ORIGIN?.split(',').map((s) => s.trim()) ?? true
+
+function createCorsOrigin() {
+  const raw = process.env.CORS_ORIGIN?.trim()
+  if (!raw) return true
+
+  const allowList = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  const patterns = allowList.map((origin) => {
+    if (!origin.includes('*')) return null
+    const escaped = origin.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')
+    return new RegExp(`^${escaped}$`)
+  })
+
+  return (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow same-origin and non-browser requests (curl/health checks).
+    if (!origin) return callback(null, true)
+    if (allowList.includes(origin)) return callback(null, true)
+    if (patterns.some((r) => r?.test(origin))) return callback(null, true)
+    callback(new Error('Not allowed by CORS'))
+  }
+}
+
+const corsOrigin = createCorsOrigin()
 
 async function bootstrap() {
   await initDb()

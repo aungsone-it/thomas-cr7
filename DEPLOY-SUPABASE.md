@@ -65,6 +65,12 @@ SEED_DATA=none
 CORS_ORIGIN=https://your-app.vercel.app
 ```
 
+If you use Vercel preview URLs, you can allow all previews:
+
+```env
+CORS_ORIGIN=https://your-app.vercel.app,https://*.vercel.app
+```
+
 6. Deploy → copy your Render URL: `https://mm2d3d-api.onrender.com`
 
 ---
@@ -78,6 +84,8 @@ CORS_ORIGIN=https://your-app.vercel.app
 ```env
 VITE_API_URL=https://mm2d3d-api.onrender.com/api
 ```
+
+Tip: keep this in a local template file `.env.vercel.example`.
 
 4. Deploy → your app is live at `https://your-app.vercel.app`
 
