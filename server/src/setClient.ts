@@ -55,27 +55,40 @@ export async function fetchSetIndex(): Promise<SetIndexData> {
   const url = mode === 'realtime' ? SET_REALTIME_URL : SET_DELAY_URL
   const params = new URLSearchParams({ market: 'SET', indexSector: 'SET' })
 
-  const res = await fetch(`${url}?${params}`, {
-    headers: { 'api-key': apiKey },
-    signal: AbortSignal.timeout(10_000),
-  })
+  try {
+    const res = await fetch(`${url}?${params}`, {
+      headers: { 'api-key': apiKey },
+      signal: AbortSignal.timeout(10_000),
+    })
 
-  if (!res.ok) throw new Error(`SET API error: ${res.status}`)
+    if (!res.ok) {
+      console.warn(`[SET] Official API error ${res.status}; falling back to public feed`)
+      return withSetCache(fetchSetIndexPublic)
+    }
 
-  const data = (await res.json()) as SetApiResponse
-  const entry = data.indexIndustrySectors?.[0] ?? data.indexList?.[0]
-  if (!entry) throw new Error('SET API returned empty index')
+    const data = (await res.json()) as SetApiResponse
+    const entry = data.indexIndustrySectors?.[0] ?? data.indexList?.[0]
+    if (!entry) {
+      console.warn('[SET] Official API returned empty index; falling back to public feed')
+      return withSetCache(fetchSetIndexPublic)
+    }
 
-  const value = entry.last ?? entry.prior ?? 0
-  const prior = entry.prior ?? value
-  const change = value - prior
-  const changePercent = prior !== 0 ? (change / prior) * 100 : 0
+    const value = entry.last ?? entry.prior ?? 0
+    const prior = entry.prior ?? value
+    const change = value - prior
+    const changePercent = prior !== 0 ? (change / prior) * 100 : 0
 
-  return {
-    value,
-    change,
-    changePercent,
-    updatedAt: entry.time ?? new Date().toISOString(),
+    return {
+      value,
+      change,
+      changePercent,
+      updatedAt: entry.time ?? new Date().toISOString(),
+    }
+  } catch (err) {
+    console.warn(
+      `[SET] Official API request failed (${err instanceof Error ? err.message : String(err)}); falling back to public feed`,
+    )
+    return withSetCache(fetchSetIndexPublic)
   }
 }
 
